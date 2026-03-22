@@ -40,7 +40,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -105,21 +107,43 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SplashScreen(navController: NavController, userManager: UserManager) {
-    val scale = remember { Animatable(0f) }
-    val yOffset = remember { Animatable(100f) }
-    val opacity = remember { Animatable(0f) }
+    val scale = remember { Animatable(0.6f) }
+    val alpha = remember { Animatable(0f) }
+    val yOffset = remember { Animatable(30f) }
+    val rotation = remember { Animatable(0f) }
     
+    val infiniteTransition = rememberInfiniteTransition(label = "background")
+    val circleAnim1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(5000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "circle1"
+    )
+    val circleAnim2 by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(7000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "circle2"
+    )
+
     LaunchedEffect(Unit) {
         launch {
-            scale.animateTo(1f, animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow))
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+            )
         }
         launch {
-            yOffset.animateTo(0f, animationSpec = tween(1000, easing = FastOutSlowInEasing))
+            alpha.animateTo(1f, animationSpec = tween(1000))
         }
         launch {
-            opacity.animateTo(1f, animationSpec = tween(1200))
+            yOffset.animateTo(0f, animationSpec = tween(1200, easing = FastOutSlowInEasing))
         }
-        delay(2500)
+        launch {
+            rotation.animateTo(360f, animationSpec = tween(2000, easing = FastOutSlowInEasing))
+        }
+        
+        delay(3000)
         val loggedInUser = userManager.loggedInUser.first()
         if (loggedInUser == null) {
             navController.navigate("login") { popUpTo("splash") { inclusive = true } }
@@ -131,53 +155,121 @@ fun SplashScreen(navController: NavController, userManager: UserManager) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF3778E1), Color(0xFF1E4C9A)))),
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFF3778E1), Color(0xFF1E4C9A), Color(0xFF0F2A5A)),
+                    start = Offset(0f, 0f),
+                    end = Offset(1000f, 2000f)
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.offset(y = yOffset.value.dp).alpha(opacity.value)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(130.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Rounded.Savings,
-                    null,
-                    modifier = Modifier.size(70.dp).scale(scale.value),
-                    tint = Color.White
-                )
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                "Spend Analyzer",
-                color = Color.White,
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp
+        // Decorative Animated Background Elements
+        Canvas(modifier = Modifier.fillMaxSize().blur(40.dp)) {
+            drawCircle(
+                color = Color.White.copy(alpha = 0.08f),
+                radius = 300f + (100f * circleAnim1),
+                center = Offset(size.width * 0.8f, size.height * 0.2f + (50f * circleAnim2))
             )
-            Text(
-                "Your Smart Financial Companion",
-                color = Color.White.copy(alpha = 0.7f),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-        
-        Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 color = Color.White.copy(alpha = 0.05f),
-                radius = 400f * scale.value,
-                center = Offset(size.width, 0f)
+                radius = 400f + (150f * circleAnim2),
+                center = Offset(size.width * 0.2f, size.height * 0.8f - (80f * circleAnim1))
             )
-            drawCircle(
-                color = Color.White.copy(alpha = 0.03f),
-                radius = 300f * scale.value,
-                center = Offset(0f, size.height)
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .offset(y = yOffset.value.dp)
+                .alpha(alpha.value)
+        ) {
+            // Icon with a premium glow/border effect
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(140.dp)
+                    .scale(scale.value)
+            ) {
+                // Spinning outer ring
+                Canvas(modifier = Modifier.size(130.dp).rotate(rotation.value)) {
+                    drawArc(
+                        color = Color.White.copy(alpha = 0.3f),
+                        startAngle = 0f,
+                        sweepAngle = 280f,
+                        useCenter = false,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = 4.dp.toPx(),
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                    )
+                }
+                
+                // Static inner circle
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Rounded.Savings,
+                        null,
+                        modifier = Modifier.size(56.dp),
+                        tint = Color.White
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(40.dp))
+            
+            Text(
+                "Receipt Vault",
+                color = Color.White,
+                fontSize = 42.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = (-1).sp
             )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                "SECURE • SMART • SIMPLE",
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 4.sp
+            )
+            
+            Spacer(modifier = Modifier.height(60.dp))
+            
+            // Subtle loading bar at the bottom
+            Box(
+                modifier = Modifier
+                    .width(180.dp)
+                    .height(3.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f))
+            ) {
+                val progress = remember { Animatable(0f) }
+                LaunchedEffect(Unit) {
+                    progress.animateTo(
+                        1f,
+                        animationSpec = tween(2800, easing = LinearOutSlowInEasing)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress.value)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFF00D2FF), Color.White)
+                            )
+                        )
+                )
+            }
         }
     }
 }
