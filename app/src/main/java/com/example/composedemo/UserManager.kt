@@ -9,12 +9,17 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "user_prefs")
 
+enum class AppTheme {
+    LIGHT, DARK, SYSTEM
+}
+
 class UserManager(private val context: Context) {
     companion object {
         val USER_NAME = stringPreferencesKey("user_name")
         val USER_EMAIL = stringPreferencesKey("user_email")
         val USER_PASSWORD = stringPreferencesKey("user_password")
         val LOGGED_IN_USER = stringPreferencesKey("logged_in_user")
+        val APP_THEME = stringPreferencesKey("app_theme")
     }
 
     suspend fun saveUser(name: String, email: String, pass: String) {
@@ -32,8 +37,17 @@ class UserManager(private val context: Context) {
         }
     }
 
+    suspend fun setAppTheme(theme: AppTheme) {
+        context.dataStore.edit { prefs ->
+            prefs[APP_THEME] = theme.name
+        }
+    }
+
     val userName: Flow<String?> = context.dataStore.data.map { it[USER_NAME] }
     val userEmail: Flow<String?> = context.dataStore.data.map { it[USER_EMAIL] }
     val userPassword: Flow<String?> = context.dataStore.data.map { it[USER_PASSWORD] }
     val loggedInUser: Flow<String?> = context.dataStore.data.map { it[LOGGED_IN_USER] }
+    val appTheme: Flow<AppTheme> = context.dataStore.data.map { prefs ->
+        AppTheme.valueOf(prefs[APP_THEME] ?: AppTheme.SYSTEM.name)
+    }
 }

@@ -36,7 +36,9 @@ data class SpendRecord(
     val amount: Double,
     val category: SpendCategory,
     val description: String,
-    val date: LocalDate = LocalDate.now()
+    val date: LocalDate = LocalDate.now(),
+    val cardId: Int? = null,
+    val cardDisplay: String? = null // e.g. "Visa • 4242"
 )
 
 @Composable

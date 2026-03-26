@@ -20,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -74,22 +75,28 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 
+val LocalDarkTheme = compositionLocalOf { false }
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val database = AppDatabase.getDatabase(this)
         val dao = database.spendDao()
         
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        )
+        enableEdgeToEdge()
         setContent {
-            ComposeDemoTheme {
-                val navController = rememberNavController()
-                val userManager = remember { UserManager(this) }
+            val userManager = remember { UserManager(this) }
+            val appTheme by userManager.appTheme.collectAsState(initial = AppTheme.SYSTEM)
+            
+            val isDarkTheme = when (appTheme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
+
+            ComposeDemoTheme(darkTheme = isDarkTheme) {
+                CompositionLocalProvider(LocalDarkTheme provides isDarkTheme) {
+                    val navController = rememberNavController()
 
                 NavHost(
                     navController = navController,
@@ -99,6 +106,7 @@ class MainActivity : ComponentActivity() {
                     composable("login") { LoginScreen(navController, userManager, dao) }
                     composable("signup") { SignupScreen(navController, userManager, dao) }
                     composable("main_flow") { MainFlowScreen(userManager, navController, dao) }
+                }
                 }
             }
         }
@@ -164,7 +172,6 @@ fun SplashScreen(navController: NavController, userManager: UserManager) {
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Decorative Animated Background Elements
         Canvas(modifier = Modifier.fillMaxSize().blur(40.dp)) {
             drawCircle(
                 color = Color.White.copy(alpha = 0.08f),
@@ -184,14 +191,12 @@ fun SplashScreen(navController: NavController, userManager: UserManager) {
                 .offset(y = yOffset.value.dp)
                 .alpha(alpha.value)
         ) {
-            // Icon with a premium glow/border effect
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(140.dp)
                     .scale(scale.value)
             ) {
-                // Spinning outer ring
                 Canvas(modifier = Modifier.size(130.dp).rotate(rotation.value)) {
                     drawArc(
                         color = Color.White.copy(alpha = 0.3f),
@@ -205,7 +210,6 @@ fun SplashScreen(navController: NavController, userManager: UserManager) {
                     )
                 }
                 
-                // Static inner circle
                 Box(
                     modifier = Modifier
                         .size(100.dp)
@@ -244,7 +248,6 @@ fun SplashScreen(navController: NavController, userManager: UserManager) {
             
             Spacer(modifier = Modifier.height(60.dp))
             
-            // Subtle loading bar at the bottom
             Box(
                 modifier = Modifier
                     .width(180.dp)
@@ -286,15 +289,15 @@ fun LoginScreen(navController: NavController, userManager: UserManager, dao: Spe
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.padding(16.dp).border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
+                    modifier = Modifier.padding(16.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
                     snackbarData = data
                 )
             }
         },
-        containerColor = Color(0xFFF8F9FE)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             Canvas(modifier = Modifier.fillMaxWidth().height(280.dp)) {
@@ -329,7 +332,7 @@ fun LoginScreen(navController: NavController, userManager: UserManager, dao: Spe
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(32.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
@@ -340,12 +343,12 @@ fun LoginScreen(navController: NavController, userManager: UserManager, dao: Spe
                             "Welcome Back",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Black,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             "Please login to your account",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         
                         Spacer(modifier = Modifier.height(32.dp))
@@ -359,7 +362,7 @@ fun LoginScreen(navController: NavController, userManager: UserManager, dao: Spe
                             leadingIcon = { Icon(Icons.Rounded.Email, null, tint = Color(0xFF3778E1)) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFF3778E1),
-                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.4f)
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                         
@@ -375,7 +378,7 @@ fun LoginScreen(navController: NavController, userManager: UserManager, dao: Spe
                             leadingIcon = { Icon(Icons.Rounded.Lock, null, tint = Color(0xFF3778E1)) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFF3778E1),
-                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.4f)
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                         
@@ -421,7 +424,7 @@ fun LoginScreen(navController: NavController, userManager: UserManager, dao: Spe
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Don't have an account? ", color = Color.Gray, fontSize = 14.sp)
+                    Text("Don't have an account? ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     Text(
                         "Sign Up",
                         color = Color(0xFF3778E1),
@@ -448,15 +451,15 @@ fun SignupScreen(navController: NavController, userManager: UserManager, dao: Sp
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.padding(16.dp).border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
+                    modifier = Modifier.padding(16.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
                     snackbarData = data
                 )
             }
         },
-        containerColor = Color(0xFFF8F9FE)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             Canvas(modifier = Modifier.fillMaxWidth().height(220.dp)) {
@@ -489,7 +492,7 @@ fun SignupScreen(navController: NavController, userManager: UserManager, dao: Sp
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(32.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
@@ -505,7 +508,7 @@ fun SignupScreen(navController: NavController, userManager: UserManager, dao: Sp
                             leadingIcon = { Icon(Icons.Rounded.Person, null, tint = Color(0xFF3778E1)) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFF3778E1),
-                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.4f)
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                         
@@ -520,7 +523,7 @@ fun SignupScreen(navController: NavController, userManager: UserManager, dao: Sp
                             leadingIcon = { Icon(Icons.Rounded.Email, null, tint = Color(0xFF3778E1)) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFF3778E1),
-                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.4f)
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                         
@@ -536,7 +539,7 @@ fun SignupScreen(navController: NavController, userManager: UserManager, dao: Sp
                             leadingIcon = { Icon(Icons.Rounded.Lock, null, tint = Color(0xFF3778E1)) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFF3778E1),
-                                unfocusedBorderColor = Color.LightGray.copy(alpha = 0.4f)
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                         
@@ -581,7 +584,7 @@ fun SignupScreen(navController: NavController, userManager: UserManager, dao: Sp
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Already have an account? ", color = Color.Gray, fontSize = 14.sp)
+                    Text("Already have an account? ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     Text(
                         "Sign In",
                         color = Color(0xFF3778E1),
@@ -613,12 +616,16 @@ fun MainFlowScreen(userManager: UserManager, rootNavController: NavController, d
     val userCardsEntity by if (userEmail != null) dao.getCardsForUser(userEmail!!).collectAsState(initial = emptyList()) else remember { mutableStateOf(emptyList()) }
 
     val spendRecords = spendRecordsEntity.map { entity ->
+        val card = userCardsEntity.find { it.id == entity.cardId }
+        val cardDisplay = card?.let { "${it.cardType} • ${it.cardNumber.takeLast(4)}" }
         SpendRecord(
             id = entity.id.toString(),
             amount = entity.amount,
             category = SpendCategory.valueOf(entity.category),
             description = entity.description,
-            date = entity.date
+            date = entity.date,
+            cardId = entity.cardId,
+            cardDisplay = cardDisplay
         )
     }
 
@@ -639,22 +646,22 @@ fun MainFlowScreen(userManager: UserManager, rootNavController: NavController, d
             snackbarHost = {
                 SnackbarHost(snackbarHostState) { data ->
                     Snackbar(
-                        containerColor = Color.White,
-                        contentColor = Color.Black,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         actionColor = themeColor,
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .padding(16.dp)
-                            .border(1.dp, Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
                         snackbarData = data
                     )
                 }
             },
             bottomBar = {
                 NavigationBar(
-                    containerColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 0.dp,
-                    modifier = Modifier.border(1.dp, Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 ) {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
@@ -674,7 +681,7 @@ fun MainFlowScreen(userManager: UserManager, rootNavController: NavController, d
                             },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = themeColor,
-                                unselectedIconColor = Color.Gray,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 indicatorColor = themeColor.copy(alpha = 0.1f)
                             )
                         )
@@ -693,7 +700,7 @@ fun MainFlowScreen(userManager: UserManager, rootNavController: NavController, d
                         scope.launch {
                             dao.setLimit(CategoryLimitEntity(userEmail = userEmail ?: "", category = cat.name, limitAmount = limit))
                         }
-                    }) 
+                    }, cards = userCardsEntity) 
                 }
                 composable(Screen.Export.route) { ExportScreen(spendRecords, snackbarHostState) }
                 composable(Screen.Cards.route) { 
@@ -740,6 +747,7 @@ fun MainFlowScreen(userManager: UserManager, rootNavController: NavController, d
 
     if (showAddBillDialog) {
         AddBillDialog(
+            cards = userCardsEntity,
             onDismiss = { showAddBillDialog = false },
             onAdd = { record ->
                 scope.launch {
@@ -748,7 +756,8 @@ fun MainFlowScreen(userManager: UserManager, rootNavController: NavController, d
                         amount = record.amount,
                         category = record.category.name,
                         description = record.description,
-                        date = record.date
+                        date = record.date,
+                        cardId = record.cardId
                     ))
                 }
                 showAddBillDialog = false
@@ -763,7 +772,8 @@ fun DashboardScreen(
     records: List<SpendRecord>, 
     limits: Map<String, Double>,
     onDelete: (SpendRecord) -> Unit,
-    onSetLimit: (SpendCategory, Double) -> Unit
+    onSetLimit: (SpendCategory, Double) -> Unit,
+    cards: List<CardEntity>
 ) {
     var visible by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(SpendCategory.FOOD) }
@@ -780,8 +790,8 @@ fun DashboardScreen(
     ) {
         item {
             Column {
-                Text("Hi, ${userName ?: "User"}!", fontSize = 14.sp, color = Color.Gray)
-                Text("Spend Tracker", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color.Black)
+                Text("Hi, ${userName ?: "User"}!", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Spend Tracker", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
             }
         }
 
@@ -800,7 +810,7 @@ fun DashboardScreen(
         item { AIInsightCard(records, categoryLimitsTyped) }
 
         item {
-            Text("Categories & Budgets", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Text("Categories & Budgets", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         }
 
         item {
@@ -828,7 +838,8 @@ fun DashboardScreen(
                 Text(
                     text = "Transaction Slips",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = selectedCategory.displayName,
@@ -843,7 +854,7 @@ fun DashboardScreen(
         if (categoryRecords.isEmpty()) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("No records found", color = Color.LightGray, fontSize = 14.sp)
+                    Text("No records found", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                 }
             }
         } else {
@@ -876,7 +887,7 @@ fun AIInsightCard(records: List<SpendRecord>, limits: Map<SpendCategory, Double>
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, Color(0xFF3778E1).copy(alpha = 0.2f), RoundedCornerShape(24.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F7FF)),
+        colors = CardDefaults.cardColors(containerColor = if (LocalDarkTheme.current) Color(0xFF1E2A3A) else Color(0xFFF0F7FF)),
         shape = RoundedCornerShape(24.dp)
     ) {
         Row(
@@ -894,7 +905,7 @@ fun AIInsightCard(records: List<SpendRecord>, limits: Map<SpendCategory, Double>
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text("AI Insight", fontWeight = FontWeight.Bold, color = Color(0xFF3778E1), fontSize = 14.sp)
-                Text(insight, style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
+                Text(insight, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
@@ -946,13 +957,13 @@ fun CategoryCard(
             .width(160.dp)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) category.color else Color.LightGray.copy(alpha = 0.3f),
+                color = if (isSelected) category.color else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                 shape = RoundedCornerShape(20.dp)
             )
             .clip(RoundedCornerShape(20.dp))
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) category.color.copy(alpha = 0.05f) else Color.White
+            containerColor = if (isSelected) category.color.copy(alpha = 0.05f) else MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -967,24 +978,24 @@ fun CategoryCard(
                     Icon(getCategoryIcon(category), null, tint = category.color, modifier = Modifier.size(18.dp))
                 }
                 IconButton(onClick = onSetLimit, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Rounded.Settings, null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Rounded.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(14.dp))
                 }
             }
             
             Spacer(modifier = Modifier.height(12.dp))
-            Text(category.displayName, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+            Text(category.displayName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 text = "$${String.format(Locale.US, "%.0f", totalSpent)}",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
-                color = if (isOverLimit) Color.Red else Color.Black
+                color = if (isOverLimit) Color.Red else MaterialTheme.colorScheme.onSurface
             )
             
             if (limit > 0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Limit: $${limit.toInt()}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isOverLimit) Color.Red else Color.Black)
+                    Text("Limit: $${limit.toInt()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isOverLimit) Color.Red else MaterialTheme.colorScheme.onSurface)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 LinearProgressIndicator(
@@ -1018,7 +1029,7 @@ fun SetLimitDialog(category: SpendCategory, currentLimit: Double, onDismiss: () 
             Button(onClick = { onSave(limitText.toDoubleOrNull() ?: 0.0) }, shape = RoundedCornerShape(12.dp)) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp)
     )
 }
@@ -1036,7 +1047,7 @@ fun SpendDetailItem(record: SpendRecord, onDelete: () -> Unit) {
                 Button(onClick = { onDelete(); showDeleteConfirm = false }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("Discard") }
             },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Keep") } },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }
@@ -1045,7 +1056,7 @@ fun SpendDetailItem(record: SpendRecord, onDelete: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -1066,8 +1077,16 @@ fun SpendDetailItem(record: SpendRecord, onDelete: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(record.description, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(record.date.format(DateTimeFormatter.ofPattern("dd MMM, yyyy")), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text(record.description, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(record.date.format(DateTimeFormatter.ofPattern("dd MMM, yyyy")), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (record.cardDisplay != null) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(modifier = Modifier.background(Color(0xFF3778E1).copy(alpha = 0.1f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 2.dp)) {
+                                Text(record.cardDisplay, fontSize = 10.sp, color = Color(0xFF3778E1), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
                 
                 Column(horizontalAlignment = Alignment.End) {
@@ -1092,13 +1111,15 @@ fun SpendDetailItem(record: SpendRecord, onDelete: () -> Unit) {
                 )
             }
 
+            val isDark = LocalDarkTheme.current
             Canvas(modifier = Modifier.fillMaxWidth().height(10.dp)) {
                 val circleRadius = 5.dp.toPx()
                 val diameter = circleRadius * 2
                 val count = (size.width / (diameter + 4.dp.toPx())).toInt()
+                val color = if (isDark) Color(0xFF0B0E14) else Color(0xFFF8FAFF)
                 for (i in 0 until count) {
                     drawCircle(
-                        color = Color(0xFFF8FAFF),
+                        color = color,
                         radius = circleRadius,
                         center = Offset(i * (diameter + 4.dp.toPx()) + circleRadius, size.height)
                     )
@@ -1168,7 +1189,7 @@ fun PromotionSlideshow() {
             horizontalArrangement = Arrangement.Center
         ) {
             repeat(promos.size) { iteration ->
-                val color = if (pagerState.currentPage == iteration) Color(0xFF3778E1) else Color.LightGray.copy(alpha = 0.5f)
+                val color = if (pagerState.currentPage == iteration) Color(0xFF3778E1) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                 Box(
                     modifier = Modifier
                         .padding(2.dp)
@@ -1199,7 +1220,7 @@ fun ExportScreen(records: List<SpendRecord>, snackbarHostState: SnackbarHostStat
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         item {
-            Text("Export Report", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Export Report", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
         }
 
         item {
@@ -1227,13 +1248,13 @@ fun ExportScreen(records: List<SpendRecord>, snackbarHostState: SnackbarHostStat
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Consolidated Summary", color = Color.Gray, fontSize = 14.sp)
-                    Text("$${String.format(Locale.US, "%.2f", filteredRecords.sumOf { it.amount })}", fontSize = 32.sp, fontWeight = FontWeight.Black)
+                    Text("Consolidated Summary", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                    Text("$${String.format(Locale.US, "%.2f", filteredRecords.sumOf { it.amount })}", fontSize = 32.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
@@ -1275,7 +1296,7 @@ fun CardsScreen(cards: List<CardEntity>, onAddCard: (CardEntity) -> Unit, onDele
     ) {
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Your Cards", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Your Cards", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                 IconButton(
                     onClick = { showAddCardDialog = true },
                     modifier = Modifier.background(Color(0xFF3778E1).copy(alpha = 0.1f), CircleShape)
@@ -1288,7 +1309,7 @@ fun CardsScreen(cards: List<CardEntity>, onAddCard: (CardEntity) -> Unit, onDele
         if (cards.isEmpty()) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    Text("No cards saved yet", color = Color.Gray)
+                    Text("No cards saved yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -1405,7 +1426,7 @@ fun AddCardDialog(onDismiss: () -> Unit, onAdd: (CardEntity) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add New Card", fontWeight = FontWeight.Bold) },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp),
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1447,7 +1468,7 @@ fun PasswordVerificationDialog(userManager: UserManager, onDismiss: () -> Unit, 
         title = { Text("Verify Identity", fontWeight = FontWeight.Bold) },
         text = {
             Column {
-                Text("Please enter your account password to reveal card details.", fontSize = 14.sp, color = Color.Gray)
+                Text("Please enter your account password to reveal card details.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = password,
@@ -1465,7 +1486,7 @@ fun PasswordVerificationDialog(userManager: UserManager, onDismiss: () -> Unit, 
             }, shape = RoundedCornerShape(12.dp)) { Text("Verify") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp)
     )
 }
@@ -1475,8 +1496,10 @@ fun ProfileScreen(userManager: UserManager, onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     val email by userManager.userEmail.collectAsState(initial = "")
     val name by userManager.userName.collectAsState(initial = "")
+    val appTheme by userManager.appTheme.collectAsState(initial = AppTheme.SYSTEM)
+    var showThemeDialog by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FE))) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1501,23 +1524,25 @@ fun ProfileScreen(userManager: UserManager, onLogout: () -> Unit) {
         }
 
         Column(modifier = Modifier.padding(24.dp)) {
-            Text("Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Gray)
+            Text("Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(16.dp))
             
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                    ProfileItem(Icons.Rounded.Edit, "Edit Profile")
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.2f))
-                    ProfileItem(Icons.Rounded.Notifications, "Notifications")
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.2f))
-                    ProfileItem(Icons.Rounded.Security, "Security")
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = Color.LightGray.copy(alpha = 0.2f))
-                    ProfileItem(Icons.AutoMirrored.Rounded.Help, "Help & Support")
+                    ProfileItem(Icons.Rounded.Palette, "App Theme", subtitle = appTheme.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }) {
+                        showThemeDialog = true
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    ProfileItem(Icons.Rounded.Edit, "Edit Profile") {}
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    ProfileItem(Icons.Rounded.Notifications, "Notifications") {}
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    ProfileItem(Icons.Rounded.Security, "Security") {}
                 }
             }
 
@@ -1542,14 +1567,46 @@ fun ProfileScreen(userManager: UserManager, onLogout: () -> Unit) {
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("Select Theme", fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.surface,
+            text = {
+                Column {
+                    AppTheme.entries.forEach { theme ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { 
+                                    scope.launch { userManager.setAppTheme(theme) }
+                                    showThemeDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = appTheme == theme, onClick = null)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(theme.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() })
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showThemeDialog = false }) { Text("Close") }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
 }
 
 @Composable
-fun ProfileItem(icon: ImageVector, title: String) {
+fun ProfileItem(icon: ImageVector, title: String, subtitle: String? = null, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
+            .clickable { onClick() }
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1562,27 +1619,34 @@ fun ProfileItem(icon: ImageVector, title: String) {
             Icon(icon, null, tint = Color(0xFF3778E1), modifier = Modifier.size(18.dp))
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Text(title, fontWeight = FontWeight.SemiBold, color = Color.DarkGray)
+        Column {
+            Text(title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            if (subtitle != null) {
+                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Spacer(modifier = Modifier.weight(1f))
-        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
+        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddBillDialog(onDismiss: () -> Unit, onAdd: (SpendRecord) -> Unit) {
+fun AddBillDialog(onDismiss: () -> Unit, onAdd: (SpendRecord) -> Unit, cards: List<CardEntity>) {
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(SpendCategory.FOOD) }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var selectedCard by remember { mutableStateOf<CardEntity?>(null) }
     var expandedCat by remember { mutableStateOf(false) }
+    var expandedCard by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     val dateState = rememberDatePickerState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("New Transaction", fontWeight = FontWeight.Bold) },
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(24.dp),
         text = {
             Column {
@@ -1590,6 +1654,10 @@ fun AddBillDialog(onDismiss: () -> Unit, onAdd: (SpendRecord) -> Unit) {
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("Transaction Details", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(8.dp))
+                
                 Box {
                     OutlinedButton(onClick = { expandedCat = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -1601,17 +1669,52 @@ fun AddBillDialog(onDismiss: () -> Unit, onAdd: (SpendRecord) -> Unit) {
                         SpendCategory.entries.forEach { cat -> DropdownMenuItem(text = { Text(cat.displayName) }, onClick = { selectedCategory = cat; expandedCat = false }) }
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Box {
+                    OutlinedButton(onClick = { expandedCard = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(selectedCard?.let { "${it.cardType} • ${it.cardNumber.takeLast(4)}" } ?: "Select Card")
+                            Icon(Icons.Rounded.CreditCard, null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    DropdownMenu(expanded = expandedCard, onDismissRequest = { expandedCard = false }) {
+                        if (cards.isEmpty()) {
+                            DropdownMenuItem(text = { Text("No cards added") }, onClick = { expandedCard = false })
+                        }
+                        cards.forEach { card -> 
+                            DropdownMenuItem(
+                                text = { Text("${card.cardType} • ${card.cardNumber.takeLast(4)}") }, 
+                                onClick = { selectedCard = card; expandedCard = false }
+                            ) 
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                    Text(selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")))
+                        Icon(Icons.Rounded.CalendarToday, null, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val amt = amount.toDoubleOrNull() ?: 0.0
-                if (amt > 0) onAdd(SpendRecord(amount = amt, category = selectedCategory, description = description, date = selectedDate))
-            }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3778E1))) { Text("Save Slip") }
+            Button(
+                onClick = {
+                    val amt = amount.toDoubleOrNull() ?: 0.0
+                    if (amt > 0) onAdd(SpendRecord(
+                        amount = amt, 
+                        category = selectedCategory, 
+                        description = description, 
+                        date = selectedDate,
+                        cardId = selectedCard?.id
+                    ))
+                }, 
+                shape = RoundedCornerShape(12.dp), 
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3778E1))
+            ) { Text("Save Slip") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
@@ -1651,7 +1754,7 @@ fun generatePdf(context: Context, records: List<SpendRecord>, fileName: String):
     paint.color = android.graphics.Color.WHITE
     paint.textSize = 28f
     paint.isFakeBoldText = true
-    canvas.drawText("Spend Analyzer", 40f, 65f, paint)
+    canvas.drawText("Receipt Vault", 40f, 65f, paint)
     
     paint.textSize = 12f
     paint.isFakeBoldText = false
@@ -1686,18 +1789,19 @@ fun generatePdf(context: Context, records: List<SpendRecord>, fileName: String):
     canvas.drawRect(40f, y - 20f, pageWidth - 40f, y + 10f, paint)
     
     paint.color = android.graphics.Color.DKGRAY
-    paint.textSize = 10f
+    paint.textSize = 9f
     paint.isFakeBoldText = true
     canvas.drawText("DATE", 50f, y, paint)
-    canvas.drawText("CATEGORY", 130f, y, paint)
-    canvas.drawText("DESCRIPTION", 250f, y, paint)
+    canvas.drawText("CATEGORY", 120f, y, paint)
+    canvas.drawText("CARD", 200f, y, paint)
+    canvas.drawText("DESCRIPTION", 300f, y, paint)
     paint.textAlign = Paint.Align.RIGHT
     canvas.drawText("AMOUNT", pageWidth - 50f, y, paint)
     paint.textAlign = Paint.Align.LEFT
     
     y += 35f
     paint.isFakeBoldText = false
-    paint.textSize = 11f
+    paint.textSize = 10f
 
     records.forEachIndexed { index, record ->
         if (y > pageHeight - 80) {
@@ -1712,23 +1816,24 @@ fun generatePdf(context: Context, records: List<SpendRecord>, fileName: String):
             paint.color = android.graphics.Color.WHITE
             paint.textSize = 14f
             paint.isFakeBoldText = true
-            canvas.drawText("Spend Analyzer Report (Cont.)", 40f, 25f, paint)
+            canvas.drawText("Receipt Vault Report (Cont.)", 40f, 25f, paint)
             
             y = 80f
             paint.color = tableHeaderColor
             canvas.drawRect(40f, y - 20f, pageWidth - 40f, y + 10f, paint)
             paint.color = android.graphics.Color.DKGRAY
-            paint.textSize = 10f
+            paint.textSize = 9f
             paint.isFakeBoldText = true
             canvas.drawText("DATE", 50f, y, paint)
-            canvas.drawText("CATEGORY", 130f, y, paint)
-            canvas.drawText("DESCRIPTION", 250f, y, paint)
+            canvas.drawText("CATEGORY", 120f, y, paint)
+            canvas.drawText("CARD", 200f, y, paint)
+            canvas.drawText("DESCRIPTION", 300f, y, paint)
             paint.textAlign = Paint.Align.RIGHT
             canvas.drawText("AMOUNT", pageWidth - 50f, y, paint)
             paint.textAlign = Paint.Align.LEFT
             y += 35f
             paint.isFakeBoldText = false
-            paint.textSize = 11f
+            paint.textSize = 10f
         }
         
         if (index % 2 != 0) {
@@ -1737,13 +1842,17 @@ fun generatePdf(context: Context, records: List<SpendRecord>, fileName: String):
         }
         
         paint.color = android.graphics.Color.GRAY
-        canvas.drawText(record.date.format(DateTimeFormatter.ofPattern("dd MMM yyyy")), 50f, y, paint)
+        canvas.drawText(record.date.format(DateTimeFormatter.ofPattern("dd MMM yy")), 50f, y, paint)
         
         paint.color = android.graphics.Color.BLACK
-        canvas.drawText(record.category.displayName, 130f, y, paint)
+        canvas.drawText(record.category.displayName, 120f, y, paint)
         
-        val desc = if (record.description.length > 25) record.description.take(22) + "..." else record.description
-        canvas.drawText(desc, 250f, y, paint)
+        paint.color = themeColor
+        canvas.drawText(record.cardDisplay ?: "-", 200f, y, paint)
+        
+        paint.color = android.graphics.Color.BLACK
+        val desc = if (record.description.length > 20) record.description.take(17) + "..." else record.description
+        canvas.drawText(desc, 300f, y, paint)
         
         paint.textAlign = Paint.Align.RIGHT
         paint.isFakeBoldText = true
@@ -1760,7 +1869,7 @@ fun generatePdf(context: Context, records: List<SpendRecord>, fileName: String):
     
     paint.textSize = 8f
     paint.color = android.graphics.Color.GRAY
-    canvas.drawText("Report generated by Spend Analyzer Mobile App", 40f, pageHeight - 35f, paint)
+    canvas.drawText("Report generated by Receipt Vault Mobile App", 40f, pageHeight - 35f, paint)
     paint.textAlign = Paint.Align.RIGHT
     canvas.drawText("Page $pageNumber", pageWidth - 40f, pageHeight - 35f, paint)
 

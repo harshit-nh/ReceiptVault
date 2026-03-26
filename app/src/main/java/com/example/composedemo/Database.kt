@@ -20,6 +20,12 @@ data class UserEntity(
             parentColumns = ["email"],
             childColumns = ["userEmail"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = CardEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["cardId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
@@ -29,10 +35,21 @@ data class SpendRecordEntity(
     val amount: Double,
     val category: String,
     val description: String,
-    val date: LocalDate
+    val date: LocalDate,
+    val cardId: Int? = null
 )
 
-@Entity(tableName = "category_limits")
+@Entity(
+    tableName = "category_limits",
+    foreignKeys = [
+        ForeignKey(
+            entity = UserEntity::class,
+            parentColumns = ["email"],
+            childColumns = ["userEmail"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
 data class CategoryLimitEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val userEmail: String,
@@ -106,7 +123,7 @@ class Converters {
     }
 }
 
-@Database(entities = [UserEntity::class, SpendRecordEntity::class, CategoryLimitEntity::class, CardEntity::class], version = 2)
+@Database(entities = [UserEntity::class, SpendRecordEntity::class, CategoryLimitEntity::class, CardEntity::class], version = 4)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun spendDao(): SpendDao
@@ -122,7 +139,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "spend_database"
                 )
-                .fallbackToDestructiveMigration() // For development ease
+                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance
